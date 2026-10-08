@@ -1,0 +1,13 @@
+<idea-plugin>
+    <id>local.mcpstop</id>
+    <name>MCP Run Control</name>
+    <version>0.1.0</version>
+    <vendor>Local</vendor>
+    <description>Adds tools to list and stop running configurations through the IntelliJ MCP server.</description>
+    <idea-version since-build="242" until-build="242.*"/>
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.mcpServer</depends>
+    <extensions defaultExtensionNs="com.intellij">
+        <mcpServer.mcpToolset implementation="local.mcpstop.RunControlToolset"/>
+    </extensions>
+</idea-plugin>
