@@ -4,6 +4,7 @@ An IntelliJ IDEA plugin extending JetBrains' built-in Model Context Protocol (MC
 
 - `list_running_configurations`: List live run/debug executions in the selected project (including execution IDs, configuration names, and termination states).
 - `stop_run_configuration`: Request standard IDE termination for a specific execution using its `executionId`.
+- `get_run_output`: Read the console output of a running or finished execution (by `executionId` or newest run of a `configurationName`), with `tailLines`/`grep` filtering and, for test runs, pass/fail/ignored counts plus failed tests' messages and stack traces.
 - `reload_maven_projects`: Force IntelliJ to re-import, sync, and resolve all Maven projects and dependencies in the workspace.
 - `list_maven_modules`: Inspect the status, coordinates, packaging, and directories of Maven projects loaded in IntelliJ.
 
@@ -36,7 +37,7 @@ To build and package the distributable plugin ZIP:
 ./gradlew buildPlugin
 ```
 The output distribution ZIP will be located in:
-`build/distributions/mcp-control-tools-0.1.0.zip`
+`build/distributions/intellij-mcp-addons-0.2.0.zip`
 
 ### Run in Sandbox IDE
 To launch an isolated IntelliJ IDEA sandbox with the plugin loaded:
@@ -68,7 +69,7 @@ To verify plugin compatibility:
 2. Click the gear icon (⚙️) and select **Install Plugin from Disk...**.
 3. Select the built artifact `build/distributions/*.zip`.
 4. Restart the IDE when prompted.
-5. Go to **Settings** → **Tools** → **MCP Server** and ensure all tools (`list_running_configurations`, `stop_run_configuration`, `reload_maven_projects`, `list_maven_modules`) are active under **Exposed Tools**.
+5. Go to **Settings** → **Tools** → **MCP Server** and ensure all tools (`list_running_configurations`, `stop_run_configuration`, `get_run_output`, `reload_maven_projects`, `list_maven_modules`) are active under **Exposed Tools**.
 
 ---
 
@@ -97,7 +98,20 @@ Call from your MCP client:
    }
    ```
 
-3. **Reload / Sync Maven projects:**
+3. **Read the output of a run (last 50 lines matching a regex):**
+   ```json
+   {
+     "name": "get_run_output",
+     "arguments": {
+       "configurationName": "MySpec",
+       "tailLines": 50,
+       "grep": "ERROR|FAILED",
+       "projectPath": "/path/to/your/project"
+     }
+   }
+   ```
+
+4. **Reload / Sync Maven projects:**
    ```json
    {
      "name": "reload_maven_projects",
@@ -107,7 +121,7 @@ Call from your MCP client:
    }
    ```
 
-4. **List Maven modules:**
+5. **List Maven modules:**
    ```json
    {
      "name": "list_maven_modules",

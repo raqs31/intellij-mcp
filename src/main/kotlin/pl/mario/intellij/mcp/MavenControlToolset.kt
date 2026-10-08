@@ -11,7 +11,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.withContext
 import org.jetbrains.idea.maven.project.MavenProjectsManager
-import kotlin.coroutines.coroutineContext
 
 class MavenControlToolset : McpToolset {
     @McpTool
@@ -20,7 +19,9 @@ class MavenControlToolset : McpToolset {
         idempotentHint = McpToolHintValue.TRUE,
         openWorldHint = McpToolHintValue.FALSE,
     )
-    @McpDescription("Forces IntelliJ to re-import, sync, and resolve all Maven projects and dependencies in the workspace. Pass projectPath to select the project.")
+    @McpDescription(
+        "Forces IntelliJ to re-import, sync, and resolve all Maven projects and dependencies in the workspace. Pass projectPath to select the project.",
+    )
     suspend fun reload_maven_projects(): String {
         val project = currentCoroutineContext().project
         return withContext(Dispatchers.EDT) {
@@ -40,7 +41,9 @@ class MavenControlToolset : McpToolset {
         readOnlyHint = McpToolHintValue.TRUE,
         openWorldHint = McpToolHintValue.FALSE,
     )
-    @McpDescription("Inspects the status, coordinates, and modules of Maven projects loaded in IntelliJ. Pass projectPath to select the project.")
+    @McpDescription(
+        "Inspects the status, coordinates, and modules of Maven projects loaded in IntelliJ. Pass projectPath to select the project.",
+    )
     suspend fun list_maven_modules(): String {
         val project = currentCoroutineContext().project
         return withContext(Dispatchers.EDT) {

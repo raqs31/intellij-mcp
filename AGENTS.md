@@ -2,13 +2,13 @@
 
 ## Overview
 `intellij-mcp-stop` is an IntelliJ IDEA plugin extending JetBrains' built-in Model Context Protocol (MCP) server (`com.intellij.mcpServer`). It exposes native tools to autonomous coding agents for:
-1. **Execution Lifecycle Control:** Listing running configurations and gracefully terminating active processes.
+1. **Execution Lifecycle Control:** Listing running configurations, gracefully terminating active processes, and reading a run's console output and test results.
 2. **Maven Build & Project Model Automation:** Triggering full Maven workspace sync/reload and introspecting Maven module definitions.
 
 ## Project Structure & Architecture
 - **Root Package:** `pl.mario.intellij.mcp`
 - **Toolsets (flat under root package):**
-  - `pl.mario.intellij.mcp.RunControlToolset`: Implements `list_running_configurations` and `stop_run_configuration` using `ExecutionManager` and `ExecutionManagerImpl.stopProcess`.
+  - `pl.mario.intellij.mcp.RunControlToolset`: Implements `list_running_configurations` and `stop_run_configuration` using `ExecutionManager` and `ExecutionManagerImpl.stopProcess`, and `get_run_output` using `RunContentManager` descriptors, `ConsoleViewImpl.getText()` and the SM test runner tree (`SMTRunnerConsoleView`).
   - `pl.mario.intellij.mcp.MavenControlToolset`: Implements `reload_maven_projects` and `list_maven_modules` using `MavenProjectsManager`.
 - **Plugin Descriptor:** `src/main/resources/META-INF/plugin.xml` registers toolsets under extension point `com.intellij.mcpServer.mcpToolset`.
 

@@ -1,0 +1,5 @@
+root = true
+
+[*.{kt,kts}]
+# MCP tool names are the Kotlin function names and must stay snake_case.
+ktlint_standard_function-naming = disabled

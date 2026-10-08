@@ -1,13 +1,14 @@
 <idea-plugin>
     <id>pl.mario.intellij.mcp</id>
     <name>intellij-mcp-addons</name>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <vendor>Mario</vendor>
-    <description>Extends the IntelliJ MCP server with process execution control and Maven reload/introspection tools.</description>
+    <description>Extends the IntelliJ MCP server with process execution control, run output reading and Maven reload/introspection tools.</description>
     <idea-version since-build="262"/>
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.mcpServer</depends>
     <depends>org.jetbrains.idea.maven</depends>
+    <depends>intellij.testRunner.plugin</depends>
     <extensions defaultExtensionNs="com.intellij">
         <mcpServer.mcpToolset implementation="pl.mario.intellij.mcp.RunControlToolset"/>
         <mcpServer.mcpToolset implementation="pl.mario.intellij.mcp.MavenControlToolset"/>
