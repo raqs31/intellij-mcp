@@ -15,3 +15,5 @@ out/
 # OS / Misc
 .DS_Store
 Thumbs.db
+.intellijPlatform
+.kotlin

@@ -1,12 +1,12 @@
-package local.mcpstop
+package pl.mario.intellij.mcp
 
 import com.intellij.execution.ExecutionManager
 import com.intellij.execution.impl.ExecutionManagerImpl
 import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
-import com.intellij.mcpserver.annotations.McpToolHints
 import com.intellij.mcpserver.annotations.McpToolHintValue
+import com.intellij.mcpserver.annotations.McpToolHints
 import com.intellij.mcpserver.project
 import com.intellij.openapi.application.EDT
 import kotlinx.coroutines.Dispatchers
@@ -20,27 +20,36 @@ class RunControlToolset : McpToolset {
     suspend fun list_running_configurations(): String {
         val project = coroutineContext.project
         return withContext(Dispatchers.EDT) {
-            val descriptors = ExecutionManager.getInstance(project).getRunningDescriptors { true }
-                .filter { it.processHandler?.isProcessTerminated == false }
-            if (descriptors.isEmpty()) "No running configurations."
-            else descriptors.joinToString("\n") {
-                val state = if (it.processHandler?.isProcessTerminating == true) "stopping" else "running"
-                "executionId=${it.executionId}, name=${it.runConfigurationName ?: it.displayName}, state=$state"
+            val descriptors =
+                ExecutionManager.getInstance(project).getRunningDescriptors { true }
+                    .filter { it.processHandler?.isProcessTerminated == false }
+            if (descriptors.isEmpty()) {
+                "No running configurations."
+            } else {
+                descriptors.joinToString("\n") {
+                    val state = if (it.processHandler?.isProcessTerminating == true) "stopping" else "running"
+                    "executionId=${it.executionId}, name=${it.runConfigurationName ?: it.displayName}, state=$state"
+                }
             }
         }
     }
 
     @McpTool
-    @McpToolHints(readOnlyHint = McpToolHintValue.FALSE, destructiveHint = McpToolHintValue.TRUE,
-        idempotentHint = McpToolHintValue.TRUE, openWorldHint = McpToolHintValue.FALSE)
+    @McpToolHints(
+        readOnlyHint = McpToolHintValue.FALSE,
+        destructiveHint = McpToolHintValue.TRUE,
+        idempotentHint = McpToolHintValue.TRUE,
+        openWorldHint = McpToolHintValue.FALSE,
+    )
     @McpDescription("Request IntelliJ's normal Stop action for exactly one run/debug process in the selected project. Use an executionId from list_running_configurations and pass projectPath. Returns immediately; stop_requested does not mean the process has exited. Repeated calls while terminating do not force-kill it.")
     suspend fun stop_run_configuration(
         @McpDescription("Execution ID returned by list_running_configurations.") executionId: Long,
     ): String {
         val project = coroutineContext.project
         return withContext(Dispatchers.EDT) {
-            val matches = ExecutionManager.getInstance(project).getRunningDescriptors { true }
-                .filter { it.executionId == executionId && it.processHandler?.isProcessTerminated == false }
+            val matches =
+                ExecutionManager.getInstance(project).getRunningDescriptors { true }
+                    .filter { it.executionId == executionId && it.processHandler?.isProcessTerminated == false }
             when {
                 matches.isEmpty() -> "not_running: executionId=$executionId. Refresh list_running_configurations."
                 matches.size != 1 -> "ambiguous: executionId=$executionId matches multiple processes; no process stopped."
