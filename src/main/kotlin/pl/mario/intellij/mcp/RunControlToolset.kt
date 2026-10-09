@@ -1,6 +1,5 @@
 package pl.mario.intellij.mcp
 
-import com.intellij.execution.ExecutionManager
 import com.intellij.execution.impl.ConsoleViewImpl
 import com.intellij.execution.impl.ExecutionManagerImpl
 import com.intellij.execution.testframework.sm.runner.SMTestProxy
@@ -37,16 +36,16 @@ class RunControlToolset : McpToolset {
         val project = coroutineContext.project
         return withContext(Dispatchers.EDT) {
             val descriptors =
-                ExecutionManager
+                RunContentManager
                     .getInstance(project)
-                    .getRunningDescriptors { true }
+                    .allDescriptors
                     .filter { it.processHandler?.isProcessTerminated == false }
             if (descriptors.isEmpty()) {
                 "No running configurations."
             } else {
                 descriptors.joinToString("\n") {
                     val state = if (it.processHandler?.isProcessTerminating == true) "stopping" else "running"
-                    "executionId=${it.executionId}, name=${it.runConfigurationName ?: it.displayName}, state=$state"
+                    "executionId=${it.executionId}, name=${it.name()}, state=$state"
                 }
             }
         }
@@ -68,9 +67,9 @@ class RunControlToolset : McpToolset {
         val project = coroutineContext.project
         return withContext(Dispatchers.EDT) {
             val matches =
-                ExecutionManager
+                RunContentManager
                     .getInstance(project)
-                    .getRunningDescriptors { true }
+                    .allDescriptors
                     .filter { it.executionId == executionId && it.processHandler?.isProcessTerminated == false }
             when {
                 matches.isEmpty() -> "not_running: executionId=$executionId. Refresh list_running_configurations."
@@ -106,11 +105,7 @@ class RunControlToolset : McpToolset {
             }
         val project = coroutineContext.project
         return withContext(Dispatchers.EDT) {
-            val descriptors =
-                (
-                    RunContentManager.getInstance(project).allDescriptors +
-                        ExecutionManager.getInstance(project).getRunningDescriptors { true }
-                ).distinct()
+            val descriptors = RunContentManager.getInstance(project).allDescriptors.distinct()
             val matches =
                 if (executionId != null) {
                     descriptors.filter { it.executionId == executionId }
@@ -214,5 +209,5 @@ class RunControlToolset : McpToolset {
         return if (suite == null) name else "${suite.name}.$name"
     }
 
-    private fun RunContentDescriptor.name(): String = runConfigurationName ?: displayName
+    private fun RunContentDescriptor.name(): String = displayName
 }
