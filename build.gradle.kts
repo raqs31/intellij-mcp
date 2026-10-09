@@ -43,6 +43,9 @@ intellijPlatform {
             sinceBuild = "262"
         }
     }
+    publishing {
+        token = providers.gradleProperty("intellijPlatformPublishingToken").orElse("")
+    }
     pluginVerification {
         // Marketplace naming rules; the plugin is installed from disk, never published.
         freeArgs = listOf("-mute", "TemplateWordInPluginId,TemplateWordInPluginName")

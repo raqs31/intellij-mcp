@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    name: Publish to Marketplace
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 25
+          distribution: temurin
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle.kts', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Check formatting
+        run: ./gradlew spotlessCheck
+
+      - name: Build plugin
+        run: ./gradlew buildPlugin
+
+      - name: Verify plugin compatibility
+        run: ./gradlew verifyPlugin
+
+      - name: Publish to Marketplace
+        run: ./gradlew publishPlugin
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PLUGIN_PUBLISH_TOKEN }}
+
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin
+          path: build/distributions/*.zip
