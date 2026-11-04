@@ -50,8 +50,7 @@ intellijPlatform {
     pluginVerification {
         // Marketplace naming rules; the plugin is installed from disk, never published.
         freeArgs = listOf("-mute", "TemplateWordInPluginId,TemplateWordInPluginName")
-        // Run-control tools read ExecutionManager/RunContentDescriptor internals on purpose; report them, don't fail.
-        failureLevel = VerifyPluginTask.FailureLevel.ALL.filter { it != VerifyPluginTask.FailureLevel.INTERNAL_API_USAGES }
+        failureLevel = VerifyPluginTask.FailureLevel.ALL
     }
 }
 

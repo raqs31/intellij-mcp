@@ -1,23 +1,29 @@
 package pl.mario.intellij.mcp
 
-import com.intellij.execution.impl.ConsoleViewImpl
-import com.intellij.execution.impl.ExecutionManagerImpl
+import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.execution.testframework.sm.runner.ui.SMTRunnerConsoleView
 import com.intellij.execution.testframework.ui.BaseTestsOutputConsoleView
+import com.intellij.execution.ui.ConsoleView
 import com.intellij.execution.ui.ConsoleViewWithDelegate
 import com.intellij.execution.ui.ExecutionConsole
 import com.intellij.execution.ui.RunContentDescriptor
 import com.intellij.execution.ui.RunContentManager
+import com.intellij.ide.DataManager
 import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
 import com.intellij.mcpserver.annotations.McpToolHintValue
 import com.intellij.mcpserver.annotations.McpToolHints
 import com.intellij.mcpserver.project
+import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.EDT
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.regex.PatternSyntaxException
 import kotlin.coroutines.coroutineContext
 
@@ -25,6 +31,7 @@ private const val MAX_OUTPUT_CHARS = 100_000
 private const val MAX_FAILED_TESTS = 20
 private const val MAX_STACK_LINES = 15
 private const val MAX_LINE_CHARS = 2_000
+private const val FLUSH_TIMEOUT_MS = 1_000L
 
 class RunControlToolset : McpToolset {
     @McpTool
@@ -76,7 +83,7 @@ class RunControlToolset : McpToolset {
                 matches.size != 1 -> "ambiguous: executionId=$executionId matches multiple processes; no process stopped."
                 matches.single().processHandler?.isProcessTerminating == true -> "already_stopping: executionId=$executionId"
                 else -> {
-                    ExecutionManagerImpl.stopProcess(matches.single())
+                    matches.single().processHandler?.let(::requestStop)
                     "stop_requested: executionId=$executionId"
                 }
             }
@@ -122,15 +129,26 @@ class RunControlToolset : McpToolset {
         }
     }
 
-    private fun runOutput(
+    private fun requestStop(handler: ProcessHandler) {
+        handler.putUserData(ProcessHandler.TERMINATION_REQUESTED, true)
+        // Not a child of the tool call: stop_requested must return before the process exits.
+        CoroutineScope(Dispatchers.Default).launch {
+            if (!handler.isProcessTerminated) {
+                if (handler.detachIsDefault()) handler.detachProcess() else handler.destroyProcess()
+            }
+        }
+    }
+
+    private suspend fun runOutput(
         descriptor: RunContentDescriptor,
         tailLines: Int,
         filter: Regex?,
     ): String {
         val chain = consoleChain(descriptor.executionConsole).toList()
         val chainNames = chain.joinToString(" > ") { it.javaClass.simpleName }
+        // Test wrappers are ConsoleViews too, but only the innermost one owns the editor.
         val console =
-            chain.firstNotNullOfOrNull { it as? ConsoleViewImpl }
+            chain.filterIsInstance<ConsoleView>().lastOrNull()
                 ?: return "no_text_console: executionId=${descriptor.executionId} uses $chainNames."
         val handler = descriptor.processHandler
         val state =
@@ -146,8 +164,23 @@ class RunControlToolset : McpToolset {
                 chain.firstNotNullOfOrNull { it as? SMTRunnerConsoleView }?.let { append(testSummary(it)) }
             }
 
-        console.flushDeferredText()
-        val lines = console.text.lines()
+        val flushed =
+            !console.hasDeferredOutput() ||
+                withTimeoutOrNull(FLUSH_TIMEOUT_MS) {
+                    val done = CompletableDeferred<Unit>()
+                    console.performWhenNoDeferredOutput { done.complete(Unit) }
+                    done.await()
+                } != null
+        // console.component creates the editor of a never-shown tab, so this read stays on the EDT.
+        val text =
+            DataManager
+                .getInstance()
+                .getDataContext(console.component)
+                .getData(CommonDataKeys.EDITOR)
+                ?.document
+                ?.text
+                ?: return "no_text_console: executionId=${descriptor.executionId} uses $chainNames."
+        val lines = text.lines()
         val matched = filter?.let { regex -> lines.filter { regex.containsMatchIn(it) } } ?: lines
         val shown = if (tailLines > 0) matched.takeLast(tailLines) else matched
         val body =
@@ -155,6 +188,7 @@ class RunControlToolset : McpToolset {
                 append("--- console: ${shown.size} of ${lines.size} lines")
                 filter?.let { append(", grep=/${it.pattern}/") }
                 appendLine()
+                if (!flushed) appendLine("console: pending output not flushed")
                 shown.forEach { line ->
                     if (line.length <= MAX_LINE_CHARS) {
                         appendLine(line)
