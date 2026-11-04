@@ -515,10 +515,10 @@ Show recent finished runs from the store, document the new tools and bump the ve
 
 #### Automated
 
-- [x] 3.1 Formatting passes
-- [x] 3.2 Unit tests pass (TestTreeTest)
-- [x] 3.3 Plugin builds and verifies
-- [x] 3.4 Import guard prints nothing
+- [x] 3.1 Formatting passes — 3a6d583 · verified
+- [x] 3.2 Unit tests pass (TestTreeTest) — 3a6d583 · verified
+- [x] 3.3 Plugin builds and verifies — 3a6d583 · verified
+- [x] 3.4 Import guard prints nothing — 3a6d583 · verified
 
 #### Manual
 
@@ -531,7 +531,7 @@ Show recent finished runs from the store, document the new tools and bump the ve
 #### Automated
 
 - [ ] 4.1 Formatting passes
-- [ ] 4.2 Unit tests pass (RunWaitTest)
+- [x] 4.2 Unit tests pass (RunWaitTest)
 - [ ] 4.3 Plugin builds and verifies
 - [ ] 4.4 Import guard prints nothing
 

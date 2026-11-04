@@ -7,6 +7,7 @@ import com.intellij.execution.testframework.sm.runner.SMTRunnerEventsAdapter
 import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.execution.ui.RunContentManager
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -44,14 +45,14 @@ class RunHistoryTestListener(
         val handler = testsRoot.handler ?: return
         val counts = countTests(testsRoot)
         // root.executionId is often 0, so the run is found through its process handler; descriptors are EDT-only.
-        ApplicationManager.getApplication().invokeLater {
+        ApplicationManager.getApplication().invokeLater({
             if (project.isDisposed) return@invokeLater
             RunContentManager
                 .getInstance(project)
                 .allDescriptors
                 .firstOrNull { it.processHandler === handler }
                 ?.let { project.service<RunHistoryService>().store.testsFinished(it.executionId, counts) }
-        }
+        }, ModalityState.any())
     }
 }
 

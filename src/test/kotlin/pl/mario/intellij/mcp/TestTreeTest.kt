@@ -98,4 +98,25 @@ class TestTreeTest {
         assertTrue(out.contains("  FAILED S.bad — first\n"))
         assertFalse(out.contains("second"))
     }
+
+    @Test
+    fun longFirstMessageLineIsShortenedWithMarker() {
+        val message = "x".repeat(MAX_LINE_CHARS + 5)
+        val nodes = listOf(node("bad", TestStatus.FAILED, message = message))
+
+        val out = formatTests(nodes, true, TestsDetail.problems)
+
+        assertTrue(out.contains("  FAILED S.bad — ${"x".repeat(MAX_LINE_CHARS)}… [+5 chars]\n"))
+    }
+
+    @Test
+    fun firstMessageLineOfExactCapStaysWhole() {
+        val message = "x".repeat(MAX_LINE_CHARS)
+        val nodes = listOf(node("bad", TestStatus.FAILED, message = message))
+
+        val out = formatTests(nodes, true, TestsDetail.problems)
+
+        assertTrue(out.contains("  FAILED S.bad — $message\n"))
+        assertFalse(out.contains("chars]"))
+    }
 }

@@ -16,6 +16,8 @@ data class TestNode(
 private const val MAX_TEST_LINES = 1000
 private const val ROOT_SUITE = "(root)"
 
+internal const val MAX_LINE_CHARS = 2_000
+
 fun countTests(
     nodes: List<TestNode>,
     finished: Boolean,
@@ -72,5 +74,11 @@ private fun TestNode.line(): String {
             ?.firstOrNull()
             ?.trim()
             .orEmpty()
-    return if (firstLine.isEmpty()) "$status $label" else "$status $label — $firstLine"
+    val shown =
+        if (firstLine.length <= MAX_LINE_CHARS) {
+            firstLine
+        } else {
+            "${firstLine.take(MAX_LINE_CHARS)}… [+${firstLine.length - MAX_LINE_CHARS} chars]"
+        }
+    return if (shown.isEmpty()) "$status $label" else "$status $label — $shown"
 }
