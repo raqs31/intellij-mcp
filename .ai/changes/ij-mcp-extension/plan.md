@@ -499,11 +499,11 @@ Show recent finished runs from the store, document the new tools and bump the ve
 
 #### Automated
 
-- [x] 2.1 Formatting passes
-- [x] 2.2 Unit tests pass (RunStoreTest, formatInstant)
-- [x] 2.3 Plugin builds
-- [x] 2.4 Plugin verifier passes with internal API failing the build
-- [x] 2.5 Import guard prints nothing
+- [x] 2.1 Formatting passes — e73033a · verified
+- [x] 2.2 Unit tests pass (RunStoreTest, formatInstant) — e73033a · verified
+- [x] 2.3 Plugin builds — e73033a · verified
+- [x] 2.4 Plugin verifier passes with internal API failing the build — e73033a · verified
+- [x] 2.5 Import guard prints nothing — e73033a · verified
 
 #### Manual
 
@@ -515,10 +515,10 @@ Show recent finished runs from the store, document the new tools and bump the ve
 
 #### Automated
 
-- [ ] 3.1 Formatting passes
-- [ ] 3.2 Unit tests pass (TestTreeTest)
-- [ ] 3.3 Plugin builds and verifies
-- [ ] 3.4 Import guard prints nothing
+- [x] 3.1 Formatting passes
+- [x] 3.2 Unit tests pass (TestTreeTest)
+- [x] 3.3 Plugin builds and verifies
+- [x] 3.4 Import guard prints nothing
 
 #### Manual
 

@@ -55,18 +55,23 @@ class RunHistoryTestListener(
     }
 }
 
-internal fun countTests(root: SMTestProxy): TestCounts {
-    val tests = root.allTests.filter { it.isLeaf && !it.isSuite }
-    // An ignored test also reports isDefect, so it is classified before the failure check.
-    val ignored = tests.count { it.isIgnored }
-    val failed = tests.count { !it.isIgnored && it.isDefect }
-    val passed = tests.count { !it.isIgnored && !it.isDefect && it.isPassed }
-    return TestCounts(
-        total = tests.size,
-        passed = passed,
-        failed = failed,
-        ignored = ignored,
-        other = tests.size - ignored - failed - passed,
-        finished = !root.isInProgress,
-    )
-}
+internal fun countTests(root: SMTestProxy): TestCounts = countTests(root.toTestNodes(), !root.isInProgress)
+
+internal fun SMTestProxy.testLeaves(): List<SMTestProxy> = allTests.filter { it.isLeaf && !it.isSuite }
+
+internal fun SMTestProxy.toTestNodes(): List<TestNode> = testLeaves().map { it.toTestNode() }
+
+internal fun SMTestProxy.testStatus(): TestStatus =
+    when {
+        // An ignored test also reports isDefect, so it is classified before the failure check.
+        isIgnored -> TestStatus.IGNORED
+        isDefect -> TestStatus.FAILED
+        isPassed -> TestStatus.PASSED
+        else -> TestStatus.UNFINISHED
+    }
+
+internal fun SMTestProxy.suiteName(): String? = parent?.takeUnless { it is SMTestProxy.SMRootTestProxy }?.name
+
+internal fun SMTestProxy.qualifiedName(): String = suiteName()?.let { "$it.$name" } ?: name
+
+private fun SMTestProxy.toTestNode() = TestNode(suiteName(), name, testStatus(), errorMessage, duration)

@@ -1,10 +1,14 @@
 package pl.mario.intellij.mcp
 
+import com.intellij.execution.filters.HyperlinkInfo
 import com.intellij.execution.process.ProcessHandler
+import com.intellij.execution.testframework.Printable
+import com.intellij.execution.testframework.Printer
 import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.execution.testframework.sm.runner.ui.SMTRunnerConsoleView
 import com.intellij.execution.testframework.ui.BaseTestsOutputConsoleView
 import com.intellij.execution.ui.ConsoleView
+import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.execution.ui.ConsoleViewWithDelegate
 import com.intellij.execution.ui.ExecutionConsole
 import com.intellij.execution.ui.RunContentDescriptor
@@ -30,8 +34,7 @@ import java.util.regex.PatternSyntaxException
 import kotlin.coroutines.coroutineContext
 
 private const val MAX_OUTPUT_CHARS = 100_000
-private const val MAX_FAILED_TESTS = 20
-private const val MAX_STACK_LINES = 15
+private const val MAX_TEST_HINTS = 20
 private const val MAX_LINE_CHARS = 2_000
 private const val FLUSH_TIMEOUT_MS = 1_000L
 
@@ -95,23 +98,63 @@ class RunControlToolset : McpToolset {
     @McpTool
     @McpToolHints(readOnlyHint = McpToolHintValue.TRUE, openWorldHint = McpToolHintValue.FALSE)
     @McpDescription(
-        "Read the console output of one run/debug process in the selected project, running or finished (a finished run stays readable until its Run/Debug tab is closed). Pass exactly one of executionId (from list_running_configurations) or configurationName (reads the newest run of that configuration), plus projectPath. The header shows startedAt and finishedAt as ISO-8601 with offset: unknown when the IDE did not record it (for example a run started before the plugin loaded), and finishedAt=- while the process runs. For test runs it adds pass/fail/ignored counts and each failed test's message and stack trace from the IDE's test results tree, which is reliable even when exitCode is 0. The console holds only IntelliJ's cycle buffer (1 MB by default), so the head of a long log may be gone.",
+        "Read the console output of one run/debug process in the selected project, running or finished (a finished run stays readable until its Run/Debug tab is closed). Pass exactly one of executionId (from list_running_configurations) or configurationName (reads the newest run of that configuration), plus projectPath. The header shows startedAt and finishedAt as ISO-8601 with offset: unknown when the IDE did not record it (for example a run started before the plugin loaded), and finishedAt=- while the process runs. For test runs it adds pass/fail/ignored counts and a suite-grouped test list from the IDE's test results tree, which is reliable even when exitCode is 0; tests=problems (default) lists failed and unfinished tests, tests=all lists every test. Use get_test_results for one test's full message, stack trace and own output. The console holds only IntelliJ's cycle buffer (1 MB by default), so the head of a long log may be gone.",
     )
     suspend fun get_run_output(
         @McpDescription("Execution ID returned by list_running_configurations.") executionId: Long? = null,
         @McpDescription("Run configuration name; the newest run with this name is read.") configurationName: String? = null,
         @McpDescription("Return only the last N console lines, counted after grep. 0 returns all. Default 200.") tailLines: Int = 200,
         @McpDescription("Optional Java regex; keep only console lines containing a match.") grep: String? = null,
+        @McpDescription("Test list detail for test runs: problems (default) lists failed and unfinished tests, all lists every test.")
+        tests: TestsDetail = TestsDetail.problems,
     ): String {
-        if ((executionId == null) == (configurationName == null)) {
-            return "missing_argument: pass exactly one of executionId or configurationName."
-        }
+        selectorError(executionId, configurationName)?.let { return it }
         val filter =
             try {
                 grep?.let(::Regex)
             } catch (e: PatternSyntaxException) {
                 return "invalid_regex: ${e.description}"
             }
+        return withDescriptor(executionId, configurationName) { project, descriptor ->
+            runOutput(project, descriptor, tailLines, filter, tests)
+        }
+    }
+
+    @McpTool
+    @McpToolHints(readOnlyHint = McpToolHintValue.TRUE, openWorldHint = McpToolHintValue.FALSE)
+    @McpDescription(
+        "Read one test of a run/debug process in the selected project: status, duration, full error message, full stack trace and the test's own console output. Pass exactly one of executionId (from list_running_configurations) or configurationName (newest run of that configuration), plus testName as <suite>.<name> or just the test name, as listed by get_run_output, plus projectPath. The reply is capped; when cut, the end is kept.",
+    )
+    suspend fun get_test_results(
+        @McpDescription("Execution ID returned by list_running_configurations.") executionId: Long? = null,
+        @McpDescription("Run configuration name; the newest run with this name is read.") configurationName: String? = null,
+        @McpDescription("Test to read: <suite>.<name> as listed by get_run_output, or the test name alone when it is unique.") testName:
+            String,
+    ): String {
+        selectorError(executionId, configurationName)?.let { return it }
+        return withDescriptor(executionId, configurationName) { _, descriptor ->
+            val console =
+                consoleChain(descriptor.executionConsole).firstNotNullOfOrNull { it as? SMTRunnerConsoleView }
+                    ?: return@withDescriptor "not_a_test_run: executionId=${descriptor.executionId} has no test results tree."
+            testResults(console.resultsViewer.testsRootNode, testName)
+        }
+    }
+
+    private fun selectorError(
+        executionId: Long?,
+        configurationName: String?,
+    ): String? =
+        if ((executionId == null) == (configurationName == null)) {
+            "missing_argument: pass exactly one of executionId or configurationName."
+        } else {
+            null
+        }
+
+    private suspend fun withDescriptor(
+        executionId: Long?,
+        configurationName: String?,
+        action: suspend (Project, RunContentDescriptor) -> String,
+    ): String {
         val project = coroutineContext.project
         return withContext(Dispatchers.EDT) {
             val descriptors = RunContentManager.getInstance(project).allDescriptors.distinct()
@@ -126,7 +169,7 @@ class RunControlToolset : McpToolset {
                     "executionId=$it"
                 } ?: "configurationName=$configurationName"}. Its tab may be closed; refresh list_running_configurations."
                 matches.size != 1 -> "ambiguous: executionId=$executionId matches multiple processes."
-                else -> runOutput(project, matches.single(), tailLines, filter)
+                else -> action(project, matches.single())
             }
         }
     }
@@ -146,6 +189,7 @@ class RunControlToolset : McpToolset {
         descriptor: RunContentDescriptor,
         tailLines: Int,
         filter: Regex?,
+        tests: TestsDetail,
     ): String {
         val chain = consoleChain(descriptor.executionConsole).toList()
         val chainNames = chain.joinToString(" > ") { it.javaClass.simpleName }
@@ -169,7 +213,10 @@ class RunControlToolset : McpToolset {
                 appendLine(
                     "executionId=${descriptor.executionId}, name=${descriptor.name()}, state=$state, startedAt=$startedAt, finishedAt=$finishedAt, console=$chainNames",
                 )
-                chain.firstNotNullOfOrNull { it as? SMTRunnerConsoleView }?.let { append(testSummary(it)) }
+                chain.firstNotNullOfOrNull { it as? SMTRunnerConsoleView }?.let {
+                    val root = it.resultsViewer.testsRootNode
+                    append(formatTests(root.toTestNodes(), !root.isInProgress, tests))
+                }
             }
 
         val flushed =
@@ -223,28 +270,72 @@ class RunControlToolset : McpToolset {
             }
         }
 
-    private fun testSummary(console: SMTRunnerConsoleView): String {
-        val root = console.resultsViewer.testsRootNode
-        val counts = countTests(root)
-        val failed = root.allTests.filter { it.isLeaf && !it.isSuite && !it.isIgnored && it.isDefect }
-        return buildString {
-            appendLine(
-                "tests: total=${counts.total}, passed=${counts.passed}, failed=${counts.failed}, ignored=${counts.ignored}, other=${counts.other}, finished=${counts.finished}",
-            )
-            failed.take(MAX_FAILED_TESTS).forEach { test ->
-                appendLine("failed: ${test.qualifiedName()} — ${test.errorMessage?.lineSequence()?.firstOrNull().orEmpty()}")
-                test.stacktrace
-                    ?.lineSequence()
-                    ?.take(MAX_STACK_LINES)
-                    ?.forEach { appendLine("  $it") }
+    private fun testResults(
+        root: SMTestProxy,
+        testName: String,
+    ): String {
+        val leaves = root.testLeaves()
+        val exact = leaves.filter { it.qualifiedName() == testName }
+        val matches = exact.ifEmpty { leaves.filter { it.name == testName } }
+        val test =
+            when (matches.size) {
+                0 -> {
+                    val hints =
+                        leaves
+                            .filter { it.testStatus() == TestStatus.FAILED || it.testStatus() == TestStatus.UNFINISHED }
+                            .take(MAX_TEST_HINTS)
+                            .joinToString { it.qualifiedName() }
+                    return "test_not_found: $testName" + if (hints.isEmpty()) "" else ". Failed or unfinished tests: $hints"
+                }
+                1 -> matches.single()
+                else -> return "ambiguous_test: $testName matches ${matches.joinToString { it.qualifiedName() }}."
             }
-            if (failed.size > MAX_FAILED_TESTS) appendLine("... and ${failed.size - MAX_FAILED_TESTS} more failed")
+        val ownOutput = StringBuilder()
+        test.printOwnPrintablesOn(
+            object : Printer {
+                override fun print(
+                    text: String,
+                    contentType: ConsoleViewContentType,
+                ) {
+                    ownOutput.append(text)
+                }
+
+                override fun onNewAvailable(printable: Printable) = printable.printOn(this)
+
+                override fun printHyperlink(
+                    text: String,
+                    info: HyperlinkInfo?,
+                ) {
+                    ownOutput.append(text)
+                }
+
+                override fun mark() = Unit
+            },
+        )
+        val reply =
+            buildString {
+                appendLine("${test.qualifiedName()}: status=${test.testStatus()}, duration=${test.duration?.let { "${it}ms" } ?: "-"}")
+                appendSection("message", test.errorMessage)
+                appendSection("stacktrace", test.stacktrace)
+                appendSection("output", ownOutput.toString())
+            }
+        return if (reply.length <= MAX_OUTPUT_CHARS) {
+            reply
+        } else {
+            "[truncated: first ${reply.length - MAX_OUTPUT_CHARS} chars dropped]\n" + reply.takeLast(MAX_OUTPUT_CHARS)
         }
     }
 
-    private fun SMTestProxy.qualifiedName(): String {
-        val suite = parent?.takeUnless { it is SMTestProxy.SMRootTestProxy }
-        return if (suite == null) name else "${suite.name}.$name"
+    private fun StringBuilder.appendSection(
+        label: String,
+        text: String?,
+    ) {
+        if (text.isNullOrBlank()) {
+            appendLine("$label: -")
+        } else {
+            appendLine("$label:")
+            appendLine(text.trimEnd())
+        }
     }
 
     private fun RunContentDescriptor.name(): String = displayName
