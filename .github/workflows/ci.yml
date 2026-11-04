@@ -63,6 +63,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Run unit tests
+        run: ./gradlew test
+
       - name: Build plugin
         run: ./gradlew buildPlugin
 

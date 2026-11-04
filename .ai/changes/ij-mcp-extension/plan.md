@@ -485,10 +485,10 @@ Show recent finished runs from the store, document the new tools and bump the ve
 
 #### Automated
 
-- [x] 1.1 Formatting passes
-- [x] 1.2 Import guard prints nothing
-- [x] 1.3 Plugin builds and verifies with internal API failing the build
-- [x] 1.4 No internal-API report exists
+- [x] 1.1 Formatting passes — 3503035 · verified
+- [x] 1.2 Import guard prints nothing — 3503035 · verified
+- [x] 1.3 Plugin builds and verifies with internal API failing the build — 3503035 · verified
+- [x] 1.4 No internal-API report exists — 3503035 · verified
 
 #### Manual
 
@@ -499,11 +499,11 @@ Show recent finished runs from the store, document the new tools and bump the ve
 
 #### Automated
 
-- [ ] 2.1 Formatting passes
-- [ ] 2.2 Unit tests pass (RunStoreTest, formatInstant)
-- [ ] 2.3 Plugin builds
-- [ ] 2.4 Plugin verifier passes with internal API failing the build
-- [ ] 2.5 Import guard prints nothing
+- [x] 2.1 Formatting passes
+- [x] 2.2 Unit tests pass (RunStoreTest, formatInstant)
+- [x] 2.3 Plugin builds
+- [x] 2.4 Plugin verifier passes with internal API failing the build
+- [x] 2.5 Import guard prints nothing
 
 #### Manual
 

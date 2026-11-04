@@ -18,6 +18,8 @@ import com.intellij.mcpserver.annotations.McpToolHints
 import com.intellij.mcpserver.project
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.EDT
+import com.intellij.openapi.components.service
+import com.intellij.openapi.project.Project
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -93,7 +95,7 @@ class RunControlToolset : McpToolset {
     @McpTool
     @McpToolHints(readOnlyHint = McpToolHintValue.TRUE, openWorldHint = McpToolHintValue.FALSE)
     @McpDescription(
-        "Read the console output of one run/debug process in the selected project, running or finished (a finished run stays readable until its Run/Debug tab is closed). Pass exactly one of executionId (from list_running_configurations) or configurationName (reads the newest run of that configuration), plus projectPath. For test runs it adds pass/fail/ignored counts and each failed test's message and stack trace from the IDE's test results tree, which is reliable even when exitCode is 0. The console holds only IntelliJ's cycle buffer (1 MB by default), so the head of a long log may be gone.",
+        "Read the console output of one run/debug process in the selected project, running or finished (a finished run stays readable until its Run/Debug tab is closed). Pass exactly one of executionId (from list_running_configurations) or configurationName (reads the newest run of that configuration), plus projectPath. The header shows startedAt and finishedAt as ISO-8601 with offset: unknown when the IDE did not record it (for example a run started before the plugin loaded), and finishedAt=- while the process runs. For test runs it adds pass/fail/ignored counts and each failed test's message and stack trace from the IDE's test results tree, which is reliable even when exitCode is 0. The console holds only IntelliJ's cycle buffer (1 MB by default), so the head of a long log may be gone.",
     )
     suspend fun get_run_output(
         @McpDescription("Execution ID returned by list_running_configurations.") executionId: Long? = null,
@@ -124,7 +126,7 @@ class RunControlToolset : McpToolset {
                     "executionId=$it"
                 } ?: "configurationName=$configurationName"}. Its tab may be closed; refresh list_running_configurations."
                 matches.size != 1 -> "ambiguous: executionId=$executionId matches multiple processes."
-                else -> runOutput(matches.single(), tailLines, filter)
+                else -> runOutput(project, matches.single(), tailLines, filter)
             }
         }
     }
@@ -140,6 +142,7 @@ class RunControlToolset : McpToolset {
     }
 
     private suspend fun runOutput(
+        project: Project,
         descriptor: RunContentDescriptor,
         tailLines: Int,
         filter: Regex?,
@@ -158,9 +161,14 @@ class RunControlToolset : McpToolset {
                 handler.isProcessTerminating -> "stopping"
                 else -> "running"
             }
+        val record = project.service<RunHistoryService>().store.get(descriptor.executionId)
+        val startedAt = formatInstant(record?.startedAtMillis)
+        val finishedAt = if (handler != null && !handler.isProcessTerminated) "-" else formatInstant(record?.finishedAtMillis)
         val head =
             buildString {
-                appendLine("executionId=${descriptor.executionId}, name=${descriptor.name()}, state=$state, console=$chainNames")
+                appendLine(
+                    "executionId=${descriptor.executionId}, name=${descriptor.name()}, state=$state, startedAt=$startedAt, finishedAt=$finishedAt, console=$chainNames",
+                )
                 chain.firstNotNullOfOrNull { it as? SMTRunnerConsoleView }?.let { append(testSummary(it)) }
             }
 
@@ -217,15 +225,11 @@ class RunControlToolset : McpToolset {
 
     private fun testSummary(console: SMTRunnerConsoleView): String {
         val root = console.resultsViewer.testsRootNode
-        val tests = root.allTests.filter { it.isLeaf && !it.isSuite }
-        // An ignored test also reports isDefect, so it is classified before the failure check.
-        val ignored = tests.filter { it.isIgnored }
-        val failed = tests.filter { !it.isIgnored && it.isDefect }
-        val passed = tests.count { !it.isIgnored && !it.isDefect && it.isPassed }
-        val other = tests.size - ignored.size - failed.size - passed
+        val counts = countTests(root)
+        val failed = root.allTests.filter { it.isLeaf && !it.isSuite && !it.isIgnored && it.isDefect }
         return buildString {
             appendLine(
-                "tests: total=${tests.size}, passed=$passed, failed=${failed.size}, ignored=${ignored.size}, other=$other, finished=${!root.isInProgress}",
+                "tests: total=${counts.total}, passed=${counts.passed}, failed=${counts.failed}, ignored=${counts.ignored}, other=${counts.other}, finished=${counts.finished}",
             )
             failed.take(MAX_FAILED_TESTS).forEach { test ->
                 appendLine("failed: ${test.qualifiedName()} — ${test.errorMessage?.lineSequence()?.firstOrNull().orEmpty()}")
