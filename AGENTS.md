@@ -19,6 +19,7 @@
 - **Check Formatting:** `./gradlew spotlessCheck`
 - **Apply Formatting:** `./gradlew spotlessApply`
 - **Verify Plugin Compatibility:** `./gradlew verifyPlugin`
+- **Run Unit Tests:** `./gradlew test`
 
 ## Tool Guidelines & Constraints
 - **Concurrency & Threading:** All IDE mutations and UI thread operations must be wrapped in `withContext(Dispatchers.EDT)`.

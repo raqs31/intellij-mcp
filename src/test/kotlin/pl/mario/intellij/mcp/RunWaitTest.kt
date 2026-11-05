@@ -15,6 +15,16 @@ class RunWaitTest {
     }
 
     @Test
+    fun endedWithoutTreeEndNotRecordedInsideGraceWaits() {
+        assertEquals(WaitVerdict.WAIT, waitVerdict(true, false, false, 1_000, 5_999, endRecorded = false))
+    }
+
+    @Test
+    fun endedWithoutTreeEndNotRecordedAfterGraceIsDone() {
+        assertEquals(WaitVerdict.DONE, waitVerdict(true, false, false, 1_000, 6_000, endRecorded = false))
+    }
+
+    @Test
     fun endedWithUnfinishedTreeInsideGraceWaits() {
         assertEquals(WaitVerdict.WAIT, waitVerdict(true, true, false, 1_000, 5_999))
     }

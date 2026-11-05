@@ -40,7 +40,7 @@ To build and package the distributable plugin ZIP:
 ./gradlew buildPlugin
 ```
 The output distribution ZIP will be located in:
-`build/distributions/intellij-mcp-addons-0.4.0.zip`
+`build/distributions/ij-mcp-addons-0.4.0.zip`
 
 ### Run in Sandbox IDE
 To launch an isolated IntelliJ IDEA sandbox with the plugin loaded:
@@ -62,6 +62,11 @@ To auto-format Kotlin files and build scripts:
 To verify plugin compatibility:
 ```bash
 ./gradlew verifyPlugin
+```
+
+To run the unit tests:
+```bash
+./gradlew test
 ```
 
 ---

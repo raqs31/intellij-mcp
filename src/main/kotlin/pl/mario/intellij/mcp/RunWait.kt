@@ -12,9 +12,12 @@ fun waitVerdict(
     processEndedAtMillis: Long?,
     nowMillis: Long,
     graceMillis: Long = 5_000,
+    endRecorded: Boolean = true,
 ): WaitVerdict =
     when {
         !processEnded -> WaitVerdict.WAIT
+        // After the grace a lost end record falls through, so the wait never hangs on it.
+        !endRecorded && (processEndedAtMillis == null || nowMillis - processEndedAtMillis < graceMillis) -> WaitVerdict.WAIT
         !hasTestTree || treeFinished -> WaitVerdict.DONE
         processEndedAtMillis == null -> WaitVerdict.WAIT
         nowMillis - processEndedAtMillis < graceMillis -> WaitVerdict.WAIT

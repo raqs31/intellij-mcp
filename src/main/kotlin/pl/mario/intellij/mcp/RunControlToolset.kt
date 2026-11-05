@@ -176,7 +176,7 @@ class RunControlToolset : McpToolset {
     @McpTool
     @McpToolHints(readOnlyHint = McpToolHintValue.TRUE, openWorldHint = McpToolHintValue.FALSE)
     @McpDescription(
-        "Wait until one run/debug process in the selected project has fully ended, including a run started by someone else, then return the same summary as get_run_output. Pass exactly one of executionId (from list_running_configurations) or configurationName (the newest run of that configuration at call time; a run started later is not followed), plus projectPath. Returns at once when the run already ended; finishedAt in the header shows when it ended. A test run counts as ended when its process ended and its test tree finished; if the tree is still unfinished 5 s after the process ended, the reply shows finished=false. The last line is wait: done after <n>s, wait: timeout after <n>s (the header then shows state=running) or wait: test tree not finished 5s after process end. If the Run/Debug tab closes during the wait, returns tab_closed with the recorded exit code, times and test counts.",
+        "Wait until one run/debug process in the selected project has fully ended, including a run started by someone else, then return the same summary as get_run_output. Pass exactly one of executionId (from list_running_configurations) or configurationName (the newest run of that configuration at call time; a run started later is not followed), plus projectPath. Returns at once when the run already ended; finishedAt in the header shows when it ended. A test run counts as ended when its process ended and its test tree finished; if the tree is still unfinished 5 s after the process ended, the reply shows finished=false. The last line is wait: done after <n>s, wait: timeout after <n>s (the header then shows state=running, or state=terminated when the process ended but its test tree or end record is not ready yet) or wait: test tree not finished 5s after process end. If the Run/Debug tab closes during the wait, returns tab_closed with the recorded exit code, times and test counts.",
     )
     suspend fun wait_for_run(
         @McpDescription("Execution ID returned by list_running_configurations.") executionId: Long? = null,
@@ -225,14 +225,17 @@ class RunControlToolset : McpToolset {
                             .firstNotNullOfOrNull { it as? SMTRunnerConsoleView }
                             ?.resultsViewer
                             ?.testsRootNode
+                    val record = store.get(id)
                     val verdict =
                         waitVerdict(
                             processEnded = processEnded,
                             hasTestTree = root != null,
                             treeFinished = root?.isInProgress == false,
-                            processEndedAtMillis = store.get(id)?.finishedAtMillis ?: seenEndedAtMillis,
+                            processEndedAtMillis = record?.finishedAtMillis ?: seenEndedAtMillis,
                             nowMillis = now,
                             graceMillis = WAIT_GRACE_MS,
+                            // A run started before the plugin loaded never gets a record, so it counts as recorded.
+                            endRecorded = record == null || record.finishedAtMillis != null,
                         )
                     val elapsed = (now - startMillis) / 1_000
                     val waitLine =

@@ -26,13 +26,15 @@ Run all 5 phases of plan.md e2e; deliver a buildPlugin zip for manual IntelliJ t
 - 2026-11-04 orchestrator: Phase 4 fixes before T11: get_test_results caps only its output section; formatTests shortens message lines and the test list counts against MAX_OUTPUT_CHARS. Ambiguous nested test names: deferred to final triage.
 - 2026-11-04 orchestrator: [auto] T17: steps 4.1/4.3/4.4 as cut; runOutput/testResults caps checked by hand in phase 4 manual checks; test list may take the whole cap.
 - 2026-11-05 orchestrator: [auto] Resume: moved tickets-001 to tickets, board.md and wal.md to change root; dropped unsupported steps key from tickets (steps stay in plan.md). Scope as before: phases 4-5, unattended.
+- 2026-11-05 orchestrator: Follow-up triage: fix README zip name and test mention (T15 follow-ups 1-2), and wait_for_run end-time gap and timeout description (T12 follow-ups 1-2). Skip the rest.
+- 2026-11-05 orchestrator: [auto] T19: wait holds until end is recorded (5 s grace fallback); description covers both graces, as the planner recommended.
 
 ## Tickets
 
 <!-- tickets:start — rendered by board.py refresh -->
 | id | status | phase | holder | needs | tags | title |
 | -- | ------ | ----- | ------ | ----- | ---- | ----- |
-Closed: T1 done · T2 done · T3 done · T4 done · T5 done · T6 done · T7 done · T8 done · T9 done · T10 done · T11 done · T12 done · T13 done · T14 done · T15 done · T16 done · T17 done
+Closed: T1 done · T2 done · T3 done · T4 done · T5 done · T6 done · T7 done · T8 done · T9 done · T10 done · T11 done · T12 done · T13 done · T14 done · T15 done · T16 done · T17 done · T18 done · T19 done · T20 done
 <!-- tickets:end -->
 
 ## Log
@@ -47,3 +49,7 @@ Closed: T1 done · T2 done · T3 done · T4 done · T5 done · T6 done · T7 don
 - 2026-11-05 11:50 orchestrator: T13 done: list_run_history landed, verify passed
 - 2026-11-05 11:55 orchestrator: T14 done: docs and version 0.4.0, verify passed
 - 2026-11-05 12:00 orchestrator: T15 done: phase 5 approved, 4 minor follow-ups
+- 2026-11-05 12:10 planner: replan done: T18, T19, T20 (phase 6)
+- 2026-11-05 12:11 orchestrator: T18 done: README zip name, ./gradlew test in docs
+- 2026-11-05 12:14 orchestrator: T19 done: wait_for_run waits for recorded end, description fixed
+- 2026-11-05 12:18 orchestrator: T20 done: phase 6 approved, no findings
