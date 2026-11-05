@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>pl.mario.intellij.mcp</id>
     <name>intellij-mcp-addons</name>
-    <version>0.2.0</version>
+    <version>0.4.0</version>
     <vendor>Mario</vendor>
     <description>Extends the IntelliJ MCP server with process execution control, run output reading and Maven reload/introspection tools.</description>
     <idea-version since-build="262"/>
@@ -13,4 +13,8 @@
         <mcpServer.mcpToolset implementation="pl.mario.intellij.mcp.RunControlToolset"/>
         <mcpServer.mcpToolset implementation="pl.mario.intellij.mcp.MavenControlToolset"/>
     </extensions>
+    <projectListeners>
+        <listener class="pl.mario.intellij.mcp.RunHistoryExecutionListener" topic="com.intellij.execution.ExecutionListener"/>
+        <listener class="pl.mario.intellij.mcp.RunHistoryTestListener" topic="com.intellij.execution.testframework.sm.runner.SMTRunnerEventsListener"/>
+    </projectListeners>
 </idea-plugin>

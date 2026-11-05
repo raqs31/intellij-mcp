@@ -17,3 +17,5 @@ out/
 Thumbs.db
 .intellijPlatform
 .kotlin
+
+.ai/logs/

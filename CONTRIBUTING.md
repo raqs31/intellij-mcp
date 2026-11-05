@@ -19,7 +19,7 @@ Based on the [IntelliJ Platform SDK docs](https://plugins.jetbrains.com/docs/int
 - **Try it in a sandbox first:** `./gradlew runIde` launches a throwaway IDE with the plugin loaded. Install the zip in
   your main IDE only after that.
 
-Before pushing: `./gradlew spotlessCheck verifyPluginConfiguration buildPlugin`.
+Before pushing: `./gradlew spotlessCheck test verifyPluginConfiguration buildPlugin`.
 
 ## Commit style
 
