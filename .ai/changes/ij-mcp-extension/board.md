@@ -32,11 +32,7 @@ Run all 5 phases of plan.md e2e; deliver a buildPlugin zip for manual IntelliJ t
 <!-- tickets:start — rendered by board.py refresh -->
 | id | status | phase | holder | needs | tags | title |
 | -- | ------ | ----- | ------ | ----- | ---- | ----- |
-| T12 (review) | todo | 4 |  |  |  | Phase 4 review |
-| T13 | todo | 5 |  |  |  | list_run_history tool |
-| T14 | todo | 5 |  | T13 | docs | Docs for new tools and version 0.4.0 |
-| T15 (review) | todo | 5 |  | T13, T14 |  | Phase 5 review |
-Closed: T1 done · T2 done · T3 done · T4 done · T5 done · T6 done · T7 done · T8 done · T9 done · T10 done · T11 done · T16 done · T17 done
+Closed: T1 done · T2 done · T3 done · T4 done · T5 done · T6 done · T7 done · T8 done · T9 done · T10 done · T11 done · T12 done · T13 done · T14 done · T15 done · T16 done · T17 done
 <!-- tickets:end -->
 
 ## Log
@@ -48,3 +44,6 @@ Closed: T1 done · T2 done · T3 done · T4 done · T5 done · T6 done · T7 don
 - 2026-11-04 16:27 orchestrator: User stopped work; T11 stopped before verify, set todo; WIP committed
 - 2026-11-05 11:43 orchestrator: T11 done: wait_for_run verified, no new edits
 - 2026-11-05 11:47 orchestrator: T12 done: phase 4 approved, 3 minor follow-ups
+- 2026-11-05 11:50 orchestrator: T13 done: list_run_history landed, verify passed
+- 2026-11-05 11:55 orchestrator: T14 done: docs and version 0.4.0, verify passed
+- 2026-11-05 12:00 orchestrator: T15 done: phase 5 approved, 4 minor follow-ups

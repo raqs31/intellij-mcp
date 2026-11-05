@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>pl.mario.intellij.mcp</id>
     <name>intellij-mcp-addons</name>
-    <version>0.2.0</version>
+    <version>0.4.0</version>
     <vendor>Mario</vendor>
     <description>Extends the IntelliJ MCP server with process execution control, run output reading and Maven reload/introspection tools.</description>
     <idea-version since-build="262"/>

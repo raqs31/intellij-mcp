@@ -66,6 +66,37 @@ class RunControlToolset : McpToolset {
     }
 
     @McpTool
+    @McpToolHints(readOnlyHint = McpToolHintValue.TRUE, openWorldHint = McpToolHintValue.FALSE)
+    @McpDescription(
+        "List recent finished run/debug processes of the selected project, newest first, including runs whose Run/Debug tab is closed. Each line has executionId, name, exitCode, startedAt, finishedAt, tabOpen and, for test runs, the test counts. History is in memory, keeps the last 50 runs and is cleared on IDE restart. Pass projectPath to select the project.",
+    )
+    suspend fun list_run_history(
+        @McpDescription("Only runs of this run configuration name. Default: all.") configurationName: String? = null,
+        @McpDescription("Maximum number of runs, 1 to 50. Default 10.") limit: Int = 10,
+    ): String {
+        val project = coroutineContext.project
+        val records = project.service<RunHistoryService>().store.finished(configurationName, limit.coerceIn(1, 50))
+        if (records.isEmpty()) return "No finished runs recorded since the plugin loaded."
+        val openIds =
+            withContext(Dispatchers.EDT) {
+                RunContentManager
+                    .getInstance(project)
+                    .allDescriptors
+                    .map { it.executionId }
+                    .toSet()
+            }
+        return records.joinToString("\n") {
+            val counts =
+                it.tests?.let { t ->
+                    ", tests: total=${t.total}, passed=${t.passed}, failed=${t.failed}, ignored=${t.ignored}, other=${t.other}, finished=${t.finished}"
+                } ?: ""
+            "executionId=${it.executionId}, name=${it.name}, state=terminated, exitCode=${it.exitCode ?: "unknown"}, " +
+                "startedAt=${formatInstant(it.startedAtMillis)}, finishedAt=${formatInstant(it.finishedAtMillis)}, " +
+                "tabOpen=${it.executionId in openIds}$counts"
+        }
+    }
+
+    @McpTool
     @McpToolHints(
         readOnlyHint = McpToolHintValue.FALSE,
         destructiveHint = McpToolHintValue.TRUE,

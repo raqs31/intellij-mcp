@@ -8,7 +8,8 @@
 ## Project Structure & Architecture
 - **Root Package:** `pl.mario.intellij.mcp`
 - **Toolsets (flat under root package):**
-  - `pl.mario.intellij.mcp.RunControlToolset`: Implements `list_running_configurations` and `stop_run_configuration` using `ExecutionManager` and `ExecutionManagerImpl.stopProcess`, and `get_run_output` using `RunContentManager` descriptors, `ConsoleViewImpl.getText()` and the SM test runner tree (`SMTRunnerConsoleView`).
+  - `pl.mario.intellij.mcp.RunControlToolset`: Implements `list_running_configurations`, `stop_run_configuration` (requests the normal stop through the run's `ProcessHandler`), `get_run_output` and `get_test_results` (both read `RunContentManager` descriptors, the console's editor document and the SM test runner tree, `SMTRunnerConsoleView`), `wait_for_run` (polls the descriptor until the run ends) and `list_run_history` (reads `RunHistoryService`).
+  - `pl.mario.intellij.mcp.RunHistoryService` (project service, in-memory store of the last 50 finished runs): fed by `RunHistoryExecutionListener` (`ExecutionListener`) and `RunHistoryTestListener` (`SMTRunnerEventsListener`), both registered under `projectListeners` in `plugin.xml`.
   - `pl.mario.intellij.mcp.MavenControlToolset`: Implements `reload_maven_projects` and `list_maven_modules` using `MavenProjectsManager`.
 - **Plugin Descriptor:** `src/main/resources/META-INF/plugin.xml` registers toolsets under extension point `com.intellij.mcpServer.mcpToolset`.
 
