@@ -1,10 +1,10 @@
 ---
 change_id: ij-mcp-extension
 title: Run completion tools — wait_for_run, run timestamps, run history and test results
-status: implementing
+status: archived
 created: 2026-11-04
-updated: 2026-11-04
-archived_at: null
+updated: 2026-11-05
+archived_at: 2026-11-05T11:44:13Z
 ---
 
 ## Notes
